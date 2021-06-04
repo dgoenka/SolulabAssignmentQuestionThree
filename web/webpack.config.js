@@ -7,7 +7,7 @@ const babelLoaderConfiguration = {
   test: /\.js$/,
   include: [
     path.resolve(appDirectory, 'index.web.js'),
-    path.resolve(appDirectory, 'App.js'),
+    path.resolve(appDirectory, 'src'),
   ],
   use: {
     loader: 'babel-loader',

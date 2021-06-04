@@ -58,16 +58,12 @@ function getStreamId() {
   let currency = store.getState().currency;
   let fromTo = `${currency.fromCurrency}${currency.toCurrency}`;
   let data = currency.data.find(dataInArr => dataInArr.fromTo === fromTo);
-  console.log(
-    'in App.getCurrentConversionData, data is:\n' +
-      JSON.stringify(data, null, 2),
-  );
   return Number(((data ?? {})['data'] ?? {})['0'] ?? '');
 }
 
 const _App = props => {
-  let [fromCurrency, setFromCurrency] = useState('BTC');
-  let [toCurrency, setToCurrency] = useState('USD');
+  let [fromCurrency, setFromCurrency] = useState(props.currency.fromCurrency);
+  let [toCurrency, setToCurrency] = useState(props.currency.toCurrency);
   let [, setLastRendered] = useState(Date.now());
   let ws = useRef(null);
 
@@ -116,6 +112,15 @@ const _App = props => {
     }
   };
 
+  const onClose = event => {
+    console.log('in App.onclose, event.code is: ' + event.code);
+    if ([1005, 1001, 1000].includes(event.code)) {
+      setLastRendered(Date.now());
+    } else {
+      ws.current.open();
+    }
+  };
+
   return (
     <SafeAreaView style={{flex: 1}}>
       <View style={[styles.container]}>
@@ -127,7 +132,7 @@ const _App = props => {
             setLastRendered(Date.now());
           }}
           onMessage={onMessage}
-          reconnect
+          onClose={onClose}
         />
         <View style={styles.card}>
           <View

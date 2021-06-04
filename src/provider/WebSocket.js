@@ -59,10 +59,10 @@ class WS extends Component {
     ws.onerror = error => {
       this.props.onError && this.props.onError(error);
     };
-    ws.onclose = () =>
+    ws.onclose = event =>
       this.reconnect
         ? this._handleWebSocketSetup()
-        : this.props.onClose && this.props.onClose();
+        : this.props.onClose && this.props.onClose(event);
     this.setState({ws});
   };
 

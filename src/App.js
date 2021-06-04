@@ -15,6 +15,7 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
+  Platform,
   View,
 } from 'react-native';
 import {connect, Provider} from 'react-redux';
@@ -112,9 +113,20 @@ const _App = props => {
     }
   };
 
+  const isNormalClose = code => {
+    switch (Platform.OS) {
+      case 'ios':
+        return code === 1001;
+      case 'android':
+        return code === 1000;
+      case 'web':
+        return code === 1005;
+    }
+  };
+
   const onClose = event => {
     console.log('in App.onclose, event.code is: ' + event.code);
-    if ([1005, 1001, 1000].includes(event.code)) {
+    if (isNormalClose(event.code)) {
       setLastRendered(Date.now());
     } else {
       ws.current.open();

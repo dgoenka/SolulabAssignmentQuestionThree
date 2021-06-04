@@ -15,11 +15,14 @@ const slice = createSlice({
       state.toCurrency = action;
     },
     updateData: (state, action) => {
-      let {fromTo, currentData} = action.payload;
+      let {currentData} = action.payload;
       let currentIndex = state.data.findIndex(
-        tradingData => tradingData.fromTo === fromTo,
+        tradingData => tradingData.streamId === currentData[0],
       );
-      let data = currentIndex >= 0 ? state.data[currentIndex] : {fromTo};
+      let data =
+        currentIndex >= 0
+          ? state.data[currentIndex]
+          : {streamId: currentData[0]};
       data.data = currentData;
       if (currentIndex < 0) {
         state.data.push(data);
@@ -27,20 +30,29 @@ const slice = createSlice({
         state.data = [...state.data];
       }
     },
+    updateStreamId: (state, action) => {
+      let {fromTo, streamId} = action.payload;
+      let currentIndex = state.data.findIndex(
+        tradingData => tradingData.fromTo === fromTo,
+      );
+      let data = currentIndex >= 0 ? state.data[currentIndex] : {fromTo};
+      data.streamId = streamId;
+      if (currentIndex < 0) {
+        state.data.push(data);
+      } else {
+        state.data[currentIndex] = data;
+      }
+      state.data = [...state.data];
+    },
   },
 });
 export default slice.reducer;
 // Actions
-const {setFromCurrency, setToCurrency, updateData} = slice.actions;
+const {
+  setFromCurrency,
+  setToCurrency,
+  updateData,
+  updateStreamId,
+} = slice.actions;
 
-const updateFromCurrency = fromCurrency => dispatch => {
-  dispatch(setFromCurrency(fromCurrency));
-  //call the websocket to register a from symbol
-};
-
-const updateToCurrency = toCurrency => dispatch => {
-  dispatch(setToCurrency(toCurrency));
-  //call the websocket to register a to symbol
-};
-
-export {updateFromCurrency, updateToCurrency, updateData};
+export {setFromCurrency, setToCurrency, updateData, updateStreamId};

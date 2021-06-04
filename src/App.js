@@ -1,3 +1,4 @@
+/* global WebSocket */
 /* eslint-disable react-native/no-inline-styles */
 /**
  * Sample React Native App
@@ -7,42 +8,127 @@
  * @flow
  */
 
-import React, {useState} from 'react';
+import React, {useRef, useState} from 'react';
 import {
-  StyleSheet,
-  View,
-  Text,
-  TouchableOpacity,
   SafeAreaView,
+  StyleSheet,
+  Text,
   TextInput,
+  TouchableOpacity,
+  View,
 } from 'react-native';
-import {Provider, connect} from 'react-redux';
+import {connect, Provider} from 'react-redux';
 import store from './store';
-import {updateFromCurrency} from './store/currency';
+import {updateData, updateStreamId} from './store/currency';
+import WS from './provider/WebSocket';
 
 const isCryptoNameValid = crytoName =>
-  crytoName && crytoName.length < 5 && /^[a-zA-Z]+$/.test(crytoName);
+  crytoName &&
+  crytoName.length > 2 &&
+  crytoName.length < 5 &&
+  /^[a-zA-Z]+$/.test(crytoName);
 
-function onFromTextInputChange(value) {
-  this.setFromCurrency(value);
-  if (isCryptoNameValid(value)) {
-    store.dispatch(updateFromCurrency(value));
+const onMessage = message => {
+  let currentData = JSON.parse(message.data);
+  console.log('in App.onMessage, message is: ' + message);
+  if (Array.isArray(currentData)) {
+    if (Array.isArray(currentData[1])) {
+      store.dispatch(updateData({currentData}));
+    }
+  } else {
+    let currency = store.getState().currency;
+    let fromTo = `${currency.fromCurrency}${currency.toCurrency}`;
+    store.dispatch(updateStreamId({fromTo, streamId: currentData.chanId}));
   }
+};
+
+function getCurrentConversionData() {
+  let currency = store.getState().currency;
+  let fromTo = `${currency.fromCurrency}${currency.toCurrency}`;
+  let data = currency.data.find(dataInArr => dataInArr.fromTo === fromTo);
+  console.log(
+    'in App.getCurrentConversionData, data is:\n' +
+      JSON.stringify(data, null, 2),
+  );
+  let num = Number((((data ?? {})['data'] ?? {})['1'] ?? [])[6] ?? '0');
+  return num.toFixed(2);
 }
 
-function onToTextInputChange(value) {
-  this.setToCurrency(value);
+function getStreamId() {
+  let currency = store.getState().currency;
+  let fromTo = `${currency.fromCurrency}${currency.toCurrency}`;
+  let data = currency.data.find(dataInArr => dataInArr.fromTo === fromTo);
+  console.log(
+    'in App.getCurrentConversionData, data is:\n' +
+      JSON.stringify(data, null, 2),
+  );
+  return Number(((data ?? {})['data'] ?? {})['0'] ?? '');
 }
-
-function getCurrentConversionData() {}
 
 const _App = props => {
   let [fromCurrency, setFromCurrency] = useState('BTC');
   let [toCurrency, setToCurrency] = useState('USD');
+  let [, setLastRendered] = useState(Date.now());
+  let ws = useRef(null);
+
+  const subscribe = (from, to) => {
+    let msgStr = JSON.stringify({
+      event: 'subscribe',
+      channel: 'ticker',
+      symbol: `${from}${to}`,
+    });
+    ws.current.send(msgStr);
+  };
+
+  const unsubscribe = () => {
+    let msgStr = JSON.stringify({
+      event: 'unsubscribe',
+      channel: 'ticker',
+      chanId: getStreamId(),
+    });
+    ws.current.send(msgStr);
+  };
+
+  const onFromTextInputChange = value => {
+    setFromCurrency(value);
+    if (isCryptoNameValid(value)) {
+      unsubscribe();
+      setFromCurrency(value);
+      subscribe(value, toCurrency);
+    }
+  };
+  const onToTextInputChange = value => {
+    setToCurrency(value);
+    if (isCryptoNameValid(value)) {
+      unsubscribe();
+      setToCurrency(value);
+      subscribe(fromCurrency, value);
+    }
+  };
+
+  const connectDisconnectWebsocket = () => {
+    if (ws.current) {
+      if (ws.current.getReadyState() === window.WebSocket.CLOSED) {
+        ws.current.open();
+      } else {
+        ws.current.close();
+      }
+    }
+  };
 
   return (
     <SafeAreaView style={{flex: 1}}>
       <View style={[styles.container]}>
+        <WS
+          ref={ws}
+          url="wss://api-pub.bitfinex.com/ws/2"
+          onOpen={() => {
+            subscribe(props.currency.fromCurrency, props.currency.toCurrency);
+            setLastRendered(Date.now());
+          }}
+          onMessage={onMessage}
+          reconnect
+        />
         <View style={styles.card}>
           <View
             style={{
@@ -54,19 +140,22 @@ const _App = props => {
             <Text style={[styles.font, {fontSize: 24}]}>BITINFINEX</Text>
             <TouchableOpacity
               style={styles.button}
-              onPress={() => this.setState({click: this.state.click + 1})}>
-              <Text style={styles.font}> Connect </Text>
+              onPress={connectDisconnectWebsocket}>
+              <Text style={styles.font}>
+                {!ws.current || ws.current.getReadyState() === WebSocket.CLOSED
+                  ? 'Connect'
+                  : 'Close'}
+              </Text>
             </TouchableOpacity>
           </View>
           <View
             style={{
-              width: 300,
+              width: '100%',
               height: 100,
               flexDirection: 'row',
             }}>
             <TextInput
-              onChangeText={onFromTextInputChange.bind({setFromCurrency})}
-              defaultValue={fromCurrency}
+              onChangeText={onFromTextInputChange}
               value={fromCurrency}
               placeholder="From"
               style={{
@@ -78,8 +167,7 @@ const _App = props => {
               }}
             />
             <TextInput
-              onChangeText={onToTextInputChange.bind({setToCurrency})}
-              defaultValue={toCurrency}
+              onChangeText={onToTextInputChange}
               value={toCurrency}
               placeholder="To"
               style={{
@@ -91,13 +179,20 @@ const _App = props => {
               }}
             />
           </View>
-          {!isCryptoNameValid(fromCurrency) ? (
-            <Text>Please enter a valid from currency</Text>
-          ) : !isCryptoNameValid(toCurrency) ? (
-            <Text>Please enter a valid to currency</Text>
-          ) : (
-            <Text>{getCurrentConversionData()}</Text>
-          )}
+          <Text
+            style={{
+              width: '100%',
+              height: 100,
+              textAlign: 'center',
+              fontSize: 50,
+              color: 'white',
+            }}>
+            {!isCryptoNameValid(fromCurrency)
+              ? 'Please enter a valid from currency'
+              : !isCryptoNameValid(toCurrency)
+              ? 'Please enter a valid to currency'
+              : getCurrentConversionData()}
+          </Text>
         </View>
       </View>
     </SafeAreaView>

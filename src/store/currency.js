@@ -13,7 +13,7 @@ const slice = createSlice({
       state.fromCurrency = action.payload;
     },
     setStoreToCurrency: (state, action) => {
-      state.toCurrency = action;
+      state.toCurrency = action.payload;
     },
     setTickersAvailable: (state, action) => {
       state.tickersAvailable = action.payload;

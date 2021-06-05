@@ -38,7 +38,6 @@ const isCryptoNameValid = crytoName =>
 
 const onMessage = message => {
   let currentData = JSON.parse(message.data);
-  console.log('in App.onMessage, message is: ' + message);
   if (Array.isArray(currentData)) {
     if (Array.isArray(currentData[1])) {
       store.dispatch(updateData({currentData}));
@@ -57,10 +56,6 @@ function getCurrentConversionData() {
     return 'Invalid Pair';
   }
   let data = currency.data.find(dataInArr => dataInArr.fromTo === fromTo);
-  console.log(
-    'in App.getCurrentConversionData, data is:\n' +
-      JSON.stringify(data, null, 2),
-  );
   let num = Number((((data ?? {})['data'] ?? {})['1'] ?? [])[6] ?? '0');
   return num.toFixed(2);
 }
@@ -100,7 +95,9 @@ const _App = props => {
     if (isCryptoNameValid(value)) {
       unsubscribe();
       subscribe(value, toCurrency);
-      setStoreFromCurrency(value);
+      store.dispatch(setStoreFromCurrency(value));
+      let currency = store.getState().currency;
+      let fromTo = `${currency.fromCurrency}${currency.toCurrency}`;
     }
     setFromCurrency(value);
   };
@@ -108,7 +105,9 @@ const _App = props => {
     if (isCryptoNameValid(value)) {
       unsubscribe();
       subscribe(fromCurrency, value);
-      setStoreToCurrency(value);
+      store.dispatch(setStoreToCurrency(value));
+      let currency = store.getState().currency;
+      let fromTo = `${currency.fromCurrency}${currency.toCurrency}`;
     }
     setToCurrency(value);
   };

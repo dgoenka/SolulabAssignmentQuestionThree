@@ -165,10 +165,13 @@ const _App = props => {
               </Text>
             </TouchableOpacity>
           </View>
+          <Text style={{marginVertical: 30, color: 'white'}}>
+            Press on either part of the symbol to modify it
+          </Text>
           <View
             style={{
               width: '100%',
-              height: 100,
+              height: 70,
               flexDirection: 'row',
             }}>
             <TextInput

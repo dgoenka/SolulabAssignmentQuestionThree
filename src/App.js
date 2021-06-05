@@ -8,7 +8,7 @@
  * @flow
  */
 
-import React, {useRef, useState} from 'react';
+import React, {useRef, useEffect, useState} from 'react';
 import {
   SafeAreaView,
   StyleSheet,
@@ -20,8 +20,15 @@ import {
 } from 'react-native';
 import {connect, Provider} from 'react-redux';
 import store from './store';
-import {updateData, updateStreamId} from './store/currency';
+import {
+  updateData,
+  updateStreamId,
+  setTickersAvailable,
+  setStoreFromCurrency,
+  setStoreToCurrency,
+} from './store/currency';
 import WS from './provider/WebSocket';
+import axios from 'axios';
 
 const isCryptoNameValid = crytoName =>
   crytoName &&
@@ -46,6 +53,9 @@ const onMessage = message => {
 function getCurrentConversionData() {
   let currency = store.getState().currency;
   let fromTo = `${currency.fromCurrency}${currency.toCurrency}`;
+  if (!currency.tickersAvailable.includes(fromTo)) {
+    return 'Invalid Pair';
+  }
   let data = currency.data.find(dataInArr => dataInArr.fromTo === fromTo);
   console.log(
     'in App.getCurrentConversionData, data is:\n' +
@@ -87,20 +97,20 @@ const _App = props => {
   };
 
   const onFromTextInputChange = value => {
-    setFromCurrency(value);
     if (isCryptoNameValid(value)) {
       unsubscribe();
-      setFromCurrency(value);
       subscribe(value, toCurrency);
+      setStoreFromCurrency(value);
     }
+    setFromCurrency(value);
   };
   const onToTextInputChange = value => {
-    setToCurrency(value);
     if (isCryptoNameValid(value)) {
       unsubscribe();
-      setToCurrency(value);
       subscribe(fromCurrency, value);
+      setStoreToCurrency(value);
     }
+    setToCurrency(value);
   };
 
   const connectDisconnectWebsocket = () => {
@@ -125,7 +135,6 @@ const _App = props => {
   };
 
   const onClose = event => {
-    console.log('in App.onclose, event.code is: ' + event.code);
     if (isNormalClose(event.code)) {
       setLastRendered(Date.now());
     } else {
@@ -252,11 +261,24 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
 });
+const getTickerData = async () => {
+  let tickerListResponse = await axios.get(
+    'https://api.allorigins.win/get?url=' +
+      'https://api-pub.bitfinex.com/v2/conf/pub:list:pair:exchange',
+  );
+  let data = tickerListResponse.data;
+  let realData = JSON.parse(data.contents);
+  let listOfTickers = realData[0];
+  store.dispatch(setTickersAvailable(listOfTickers));
+};
 
-const WrappedApp = props => (
-  <Provider store={store}>
-    <App {...props} />
-  </Provider>
-);
+const WrappedApp = props => {
+  useEffect(getTickerData);
+  return (
+    <Provider store={store}>
+      <App {...props} />
+    </Provider>
+  );
+};
 
 export default WrappedApp;

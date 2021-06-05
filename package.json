@@ -13,13 +13,14 @@
   },
   "dependencies": {
     "@reduxjs/toolkit": "^1.5.1",
+    "axios": "^0.21.1",
+    "prop-types": "latest",
     "react": "16.9.0",
     "react-dom": "^16.12.0",
     "react-native": "0.61.5",
     "react-native-web": "^0.12.0-rc.1",
     "react-redux": "^7.2.4",
-    "websocket-as-promised": "^2.0.1",
-    "prop-types": "latest"
+    "websocket-as-promised": "^2.0.1"
   },
   "devDependencies": {
     "@babel/core": "^7.6.2",

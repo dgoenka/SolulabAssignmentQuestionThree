@@ -4,15 +4,19 @@ const slice = createSlice({
   name: 'currencies',
   initialState: {
     data: [],
+    tickersAvailable: [],
     fromCurrency: 'BTC',
     toCurrency: 'USD',
   },
   reducers: {
-    setFromCurrency: (state, action) => {
+    setStoreFromCurrency: (state, action) => {
       state.fromCurrency = action.payload;
     },
-    setToCurrency: (state, action) => {
+    setStoreToCurrency: (state, action) => {
       state.toCurrency = action;
+    },
+    setTickersAvailable: (state, action) => {
+      state.tickersAvailable = action.payload;
     },
     updateData: (state, action) => {
       let {currentData} = action.payload;
@@ -49,10 +53,17 @@ const slice = createSlice({
 export default slice.reducer;
 // Actions
 const {
-  setFromCurrency,
-  setToCurrency,
+  setStoreFromCurrency,
+  setStoreToCurrency,
+  setTickersAvailable,
   updateData,
   updateStreamId,
 } = slice.actions;
 
-export {setFromCurrency, setToCurrency, updateData, updateStreamId};
+export {
+  setStoreFromCurrency,
+  setStoreToCurrency,
+  setTickersAvailable,
+  updateData,
+  updateStreamId,
+};
